@@ -337,7 +337,7 @@ function MenuContent() {
                 Search Results for &quot;{searchQuery}&quot;
               </h2>
               {filteredItems && filteredItems.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
                   {filteredItems.map((item) => (
                     <MenuItemCard 
                       key={item.id} 
@@ -419,7 +419,7 @@ function MenuContent() {
                           }}>
                             <span>✦</span> {category.name}
                           </h3>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
                             {category.items.map((item) => (
                               <MenuItemCard 
                                 key={item.id} 
@@ -998,7 +998,7 @@ function MenuSkeleton() {
             </aside>
             <div style={{ flex: 1 }}>
               <div style={{ width: '200px', height: '32px', background: 'rgba(255,255,255,0.06)', marginBottom: '32px', borderRadius: '4px' }} className="skeleton" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="card menu-item-card" style={{ height: '140px', border: '1px solid var(--color-border)', display: 'flex', gap: '16px', padding: '16px' }}>
                     <div style={{ width: '120px', height: '100%', background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-sm)' }} className="skeleton" />

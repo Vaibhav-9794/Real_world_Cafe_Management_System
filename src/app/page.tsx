@@ -421,7 +421,7 @@ export default function HomePage() {
           </div>
 
           {/* Gallery setup photos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {getEventImages().map((img: any, idx: number) => (
               <div key={idx} className="card" style={{ padding: 0, overflow: 'hidden', height: '280px', position: 'relative' }}>
                 <img
@@ -454,7 +454,7 @@ export default function HomePage() {
             <p>Estimate costs and inclusions dynamically based on guests and target budget.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
+          <div className="event-planner-grid">
             {/* Input Form */}
             <div className="card" style={{ padding: '32px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -644,7 +644,7 @@ export default function HomePage() {
             <h2>Visit Us</h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
+          <div className="contact-grid">
             <div className="animate-fade-in-up">
               <h3 style={{ fontFamily: 'var(--font-title)', fontSize: 22, marginBottom: 24, color: 'var(--color-primary)' }}>
                 {branch.name}
