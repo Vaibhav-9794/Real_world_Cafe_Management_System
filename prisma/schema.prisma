@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Branch {
+  id           String        @id @default(uuid())
+  name         String
+  city         String
+  address      String
+  phone        String
+  whatsapp     String
+  email        String
+  openingHours String
+  reservations Reservation[]
+  staff        Staff[]
+  tables       Table[]
+  waitlist     Waitlist[]
+}
+
+model Table {
+  id           String        @id @default(uuid())
+  number       String
+  capacity     Int
+  status       String
+  x            Float         @default(0.0)
+  y            Float         @default(0.0)
+  branchId     String
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  reservations Reservation[] @relation("ReservationToTable")
+}
+
+model Reservation {
+  id                   String    @id @default(uuid())
+  name                 String
+  email                String
+  phone                String
+  type                 String
+  booking_type         String    @default("TABLE")
+  table_number         Int?
+  table_capacity       Int?
+  guest_count          Int       @default(0)
+  reservation_date     String
+  start_time           String
+  end_time             String
+  booking_status       String    @default("PENDING")
+  special_requests     String?
+  approval_status      String    @default("PENDING")
+  approved_by          String?
+  approved_at          DateTime?
+  rejection_reason     String?
+  is_full_cafe_booking Boolean   @default(false)
+  held_until           DateTime?
+  sessionId            String?
+  date                 String
+  time                 String
+  guests               Int
+  notes                String?
+  status               String    @default("PENDING_APPROVAL")
+  paymentStatus        String    @default("PENDING")
+  paymentId            String?
+  paymentAmount        Float     @default(0.0)
+  paymentGateway       String?
+  createdAt            DateTime  @default(now())
+  branchId             String
+  couponCode           String?
+  pointsAwarded        Int       @default(0)
+  orders               Order[]
+  payments             Payment[]
+  coupon               Coupon?   @relation(fields: [couponCode], references: [code])
+  branch               Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tables               Table[]   @relation("ReservationToTable")
+
+  @@index([branchId, reservation_date, booking_status])
+  @@index([reservation_date])
+}
+
+model Waitlist {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  guests    Int
+  date      String
+  timeSlot  String
+  status    String   @default("WAITING")
+  createdAt DateTime @default(now())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id                  String    @id @default(uuid())
+  name                String
+  email               String    @unique
+  phone               String    @unique
+  visitCount          Int       @default(0)
+  totalSpent          Float     @default(0.0)
+  points              Int       @default(0)
+  vipStatus           Boolean   @default(false)
+  membershipTier      String    @default("Bronze")
+  birthday            String?
+  notes               String?
+  preferredTable      Int?
+  dietaryRestrictions String?
+  averageGroupSize    Float     @default(2.0)
+  lastVisitDate       String?
+  referredBy          String?
+  referralCode        String?   @unique
+  createdAt           DateTime  @default(now())
+  otpCode             String?
+  otpExpires          DateTime?
+  password            String?
+  resetToken          String?
+  resetTokenExpires   DateTime?
+}
+
+model CustomerFavorite {
+  id         String   @id @default(uuid())
+  customerId String
+  itemId     String
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, itemId])
+}
+
+model Coupon {
+  code         String        @id
+  type         String
+  value        Float
+  minSpend     Float         @default(0.0)
+  startDate    String
+  endDate      String
+  usageLimit   Int           @default(100)
+  usageCount   Int           @default(0)
+  reservations Reservation[]
+}
+
+model Lead {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  type      String
+  source    String
+  notes     String?
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+}
+
+model Staff {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  role        String
+  pin         String
+  loginMethod String   @default("PIN")
+  status      String   @default("ACTIVE")
+  branchId    String?
+  createdAt   DateTime @default(now())
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+}
+
+model CMSConfig {
+  key   String @id
+  value String
+}
+
+model BlockedDate {
+  id        String   @id @default(uuid())
+  date      String
+  startTime String?
+  endTime   String?
+  reason    String?
+  type      String   @default("HOLIDAY")
+  createdAt DateTime @default(now())
+
+  @@unique([date, startTime, endTime])
+}
+
+model Order {
+  id            String       @id @default(uuid())
+  tableNumber   Int?
+  status        String       @default("PENDING")
+  totalAmount   Float        @default(0.0)
+  reservationId String?
+  branchId      String       @default("downtown")
+  customerEmail String?
+  customerPhone String?
+  createdAt     DateTime     @default(now())
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  items         OrderItem[]
+  payments      Payment[]
+
+  @@index([reservationId])
+  @@index([branchId])
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  orderId  String
+  itemId   String
+  itemName String
+  quantity Int
+  price    Float
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id            String       @id @default(uuid())
+  orderId       String?
+  reservationId String?
+  amount        Float
+  status        String       @default("PENDING")
+  gateway       String
+  transactionId String?
+  createdAt     DateTime     @default(now())
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  order         Order?       @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([reservationId])
+}
+
+model RewardRedemption {
+  id           String   @id @default(uuid())
+  customerId   String
+  rewardName   String
+  pointsBurned Int
+  createdAt    DateTime @default(now())
+}
+
+model QRScanLog {
+  id          String   @id @default(uuid())
+  branchId    String
+  tableNumber String
+  scannedAt   DateTime @default(now())
+}
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  category     String
+  quantity     Float    @default(0.0)
+  unit         String
+  minThreshold Float    @default(5.0)
+  updatedAt    DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorEmail String
+  actorRole  String
+  action     String
+  details    String
+  targetId   String?
+  createdAt  DateTime @default(now())
+}
+
+model EmailLog {
+  id           String   @id @default(uuid())
+  to           String
+  subject      String
+  body         String
+  status       String
+  errorMessage String?
+  attempts     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
