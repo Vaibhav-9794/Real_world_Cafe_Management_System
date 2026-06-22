@@ -16,11 +16,13 @@ model Branch {
   phone        String
   whatsapp     String
   email        String
-  openingHours String
+  openingHours String        @map("opening_hours")
   reservations Reservation[]
   staff        Staff[]
   tables       Table[]
   waitlist     Waitlist[]
+
+  @@map("branches")
 }
 
 model Table {
@@ -30,9 +32,11 @@ model Table {
   status       String
   x            Float         @default(0.0)
   y            Float         @default(0.0)
-  branchId     String
+  branchId     String        @map("branch_id")
   branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
   reservations Reservation[] @relation("ReservationToTable")
+
+  @@map("tables")
 }
 
 model Reservation {
@@ -56,20 +60,20 @@ model Reservation {
   rejection_reason     String?
   is_full_cafe_booking Boolean   @default(false)
   held_until           DateTime?
-  sessionId            String?
+  sessionId            String?   @map("session_id")
   date                 String
   time                 String
   guests               Int
   notes                String?
   status               String    @default("PENDING_APPROVAL")
-  paymentStatus        String    @default("PENDING")
-  paymentId            String?
-  paymentAmount        Float     @default(0.0)
-  paymentGateway       String?
-  createdAt            DateTime  @default(now())
-  branchId             String
-  couponCode           String?
-  pointsAwarded        Int       @default(0)
+  paymentStatus        String    @default("PENDING") @map("payment_status")
+  paymentId            String?   @map("payment_id")
+  paymentAmount        Float     @default(0.0) @map("payment_amount")
+  paymentGateway       String?   @map("payment_gateway")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  branchId             String    @map("branch_id")
+  couponCode           String?   @map("coupon_code")
+  pointsAwarded        Int       @default(0) @map("points_awarded")
   orders               Order[]
   payments             Payment[]
   coupon               Coupon?   @relation(fields: [couponCode], references: [code])
@@ -78,6 +82,7 @@ model Reservation {
 
   @@index([branchId, reservation_date, booking_status])
   @@index([reservation_date])
+  @@map("reservations")
 }
 
 model Waitlist {
@@ -87,11 +92,13 @@ model Waitlist {
   phone     String
   guests    Int
   date      String
-  timeSlot  String
+  timeSlot  String   @map("time_slot")
   status    String   @default("WAITING")
-  createdAt DateTime @default(now())
-  branchId  String
+  createdAt DateTime @default(now()) @map("created_at")
+  branchId  String   @map("branch_id")
   branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("waitlist")
 }
 
 model Customer {
@@ -99,46 +106,51 @@ model Customer {
   name                String
   email               String    @unique
   phone               String    @unique
-  visitCount          Int       @default(0)
-  totalSpent          Float     @default(0.0)
+  visitCount          Int       @default(0) @map("visit_count")
+  totalSpent          Float     @default(0.0) @map("total_spent")
   points              Int       @default(0)
-  vipStatus           Boolean   @default(false)
-  membershipTier      String    @default("Bronze")
+  vipStatus           Boolean   @default(false) @map("vip_status")
+  membershipTier      String    @default("Bronze") @map("membership_tier")
   birthday            String?
   notes               String?
-  preferredTable      Int?
-  dietaryRestrictions String?
-  averageGroupSize    Float     @default(2.0)
-  lastVisitDate       String?
-  referredBy          String?
-  referralCode        String?   @unique
-  createdAt           DateTime  @default(now())
-  otpCode             String?
-  otpExpires          DateTime?
+  preferredTable      Int?      @map("preferred_table")
+  dietaryRestrictions String?   @map("dietary_restrictions")
+  averageGroupSize    Float     @default(2.0) @map("average_group_size")
+  lastVisitDate       String?   @map("last_visit_date")
+  referredBy          String?   @map("referred_by")
+  referralCode        String?   @unique @map("referral_code")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  otpCode             String?   @map("otp_code")
+  otpExpires          DateTime? @map("otp_expires")
   password            String?
-  resetToken          String?
-  resetTokenExpires   DateTime?
+  resetToken          String?   @map("reset_token")
+  resetTokenExpires   DateTime? @map("reset_token_expires")
+
+  @@map("customers")
 }
 
 model CustomerFavorite {
   id         String   @id @default(uuid())
-  customerId String
-  itemId     String
-  createdAt  DateTime @default(now())
+  customerId String   @map("customer_id")
+  itemId     String   @map("item_id")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([customerId, itemId])
+  @@map("customer_favorites")
 }
 
 model Coupon {
   code         String        @id
   type         String
   value        Float
-  minSpend     Float         @default(0.0)
-  startDate    String
-  endDate      String
-  usageLimit   Int           @default(100)
-  usageCount   Int           @default(0)
+  minSpend     Float         @default(0.0) @map("min_spend")
+  startDate    String        @map("start_date")
+  endDate      String        @map("end_date")
+  usageLimit   Int           @default(100) @map("usage_limit")
+  usageCount   Int           @default(0) @map("usage_count")
   reservations Reservation[]
+
+  @@map("coupons")
 }
 
 model Lead {
@@ -150,7 +162,9 @@ model Lead {
   source    String
   notes     String?
   status    String   @default("NEW")
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("leads")
 }
 
 model Staff {
@@ -159,87 +173,100 @@ model Staff {
   email       String   @unique
   role        String
   pin         String
-  loginMethod String   @default("PIN")
+  loginMethod String   @default("PIN") @map("login_method")
   status      String   @default("ACTIVE")
-  branchId    String?
-  createdAt   DateTime @default(now())
+  branchId    String?  @map("branch_id")
+  createdAt   DateTime @default(now()) @map("created_at")
   branch      Branch?  @relation(fields: [branchId], references: [id])
+
+  @@map("staff")
 }
 
 model CMSConfig {
   key   String @id
   value String
+
+  @@map("cms_config")
 }
 
 model BlockedDate {
   id        String   @id @default(uuid())
   date      String
-  startTime String?
-  endTime   String?
+  startTime String?  @map("start_time")
+  endTime   String?  @map("end_time")
   reason    String?
   type      String   @default("HOLIDAY")
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([date, startTime, endTime])
+  @@map("blocked_dates")
 }
 
 model Order {
   id            String       @id @default(uuid())
-  tableNumber   Int?
+  tableNumber   Int?         @map("table_number")
   status        String       @default("PENDING")
-  totalAmount   Float        @default(0.0)
-  reservationId String?
-  branchId      String       @default("downtown")
-  customerEmail String?
-  customerPhone String?
-  createdAt     DateTime     @default(now())
+  totalAmount   Float        @default(0.0) @map("total_amount")
+  reservationId String?      @map("reservation_id")
+  branchId      String       @default("downtown") @map("branch_id")
+  customerEmail String?      @map("customer_email")
+  customerPhone String?      @map("customer_phone")
+  createdAt     DateTime     @default(now()) @map("created_at")
   reservation   Reservation? @relation(fields: [reservationId], references: [id])
   items         OrderItem[]
   payments      Payment[]
 
   @@index([reservationId])
   @@index([branchId])
+  @@map("orders")
 }
 
 model OrderItem {
   id       String @id @default(uuid())
-  orderId  String
-  itemId   String
-  itemName String
+  orderId  String @map("order_id")
+  itemId   String @map("item_id")
+  itemName String @map("item_name")
   quantity Int
   price    Float
   order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
 }
 
 model Payment {
   id            String       @id @default(uuid())
-  orderId       String?
-  reservationId String?
+  orderId       String?      @map("order_id")
+  reservationId String?      @map("reservation_id")
   amount        Float
   status        String       @default("PENDING")
   gateway       String
-  transactionId String?
-  createdAt     DateTime     @default(now())
+  transactionId String?      @map("transaction_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
   reservation   Reservation? @relation(fields: [reservationId], references: [id])
   order         Order?       @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@index([reservationId])
+  @@map("payments")
 }
 
 model RewardRedemption {
   id           String   @id @default(uuid())
-  customerId   String
-  rewardName   String
-  pointsBurned Int
-  createdAt    DateTime @default(now())
+  customerId   String   @map("customer_id")
+  rewardName   String   @map("reward_name")
+  pointsBurned Int      @map("points_burned")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("reward_redemptions")
 }
 
 model QRScanLog {
   id          String   @id @default(uuid())
-  branchId    String
-  tableNumber String
-  scannedAt   DateTime @default(now())
+  branchId    String   @map("branch_id")
+  tableNumber String   @map("table_number")
+  scannedAt   DateTime @default(now()) @map("scanned_at")
+
+  @@map("qr_scan_logs")
 }
 
 model InventoryItem {
@@ -248,28 +275,34 @@ model InventoryItem {
   category     String
   quantity     Float    @default(0.0)
   unit         String
-  minThreshold Float    @default(5.0)
-  updatedAt    DateTime @default(now())
+  minThreshold Float    @default(5.0) @map("min_threshold")
+  updatedAt    DateTime @default(now()) @map("updated_at")
+
+  @@map("inventory_items")
 }
 
 model Notification {
   id        String   @id @default(uuid())
-  userId    String
+  userId    String   @map("user_id")
   title     String
   message   String
   type      String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("inbox_notifications")
 }
 
 model AuditLog {
   id         String   @id @default(uuid())
-  actorEmail String
-  actorRole  String
+  actorEmail String   @map("actor_email")
+  actorRole  String   @map("actor_role")
   action     String
   details    String
-  targetId   String?
-  createdAt  DateTime @default(now())
+  targetId   String?  @map("target_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
 }
 
 model EmailLog {
@@ -278,8 +311,10 @@ model EmailLog {
   subject      String
   body         String
   status       String
-  errorMessage String?
+  errorMessage String?  @map("error_message")
   attempts     Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("email_logs")
 }
