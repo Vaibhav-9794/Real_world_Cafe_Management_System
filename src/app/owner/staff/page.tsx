@@ -15,7 +15,10 @@ import {
   Plus,
   ShieldAlert,
   Check,
-  X
+  X,
+  Copy,
+  Mail,
+  AlertCircle
 } from 'lucide-react';
 
 export default function StaffManagement() {
@@ -91,6 +94,62 @@ export default function StaffManagement() {
       setRecoveryActionLoading(null);
     }
   }
+
+  const [retryingLogId, setRetryingLogId] = useState<string | null>(null);
+  const [dismissingLogId, setDismissingLogId] = useState<string | null>(null);
+  const [copiedNotificationId, setCopiedNotificationId] = useState<string | null>(null);
+
+  async function handleRetryEmail(logId: string) {
+    setRetryingLogId(logId);
+    setRecoveryMsg('');
+    try {
+      const res = await fetch('/api/admin/staff/recovery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRecoveryMsg(data.message);
+        fetchRecoveryRequests();
+      } else {
+        setRecoveryMsg(data.message || 'Retry failed.');
+      }
+    } catch {
+      setRecoveryMsg('Network error retrying email.');
+    } finally {
+      setRetryingLogId(null);
+    }
+  }
+
+  async function handleDismissRequest(logId: string) {
+    setDismissingLogId(logId);
+    setRecoveryMsg('');
+    try {
+      const res = await fetch('/api/admin/staff/recovery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId, action: 'DISMISS' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRecoveryMsg(data.message);
+        fetchRecoveryRequests();
+      } else {
+        setRecoveryMsg(data.message || 'Clear failed.');
+      }
+    } catch {
+      setRecoveryMsg('Network error clearing request.');
+    } finally {
+      setDismissingLogId(null);
+    }
+  }
+
+  const handleCopyPin = (notificationId: string, pin: string) => {
+    navigator.clipboard.writeText(pin);
+    setCopiedNotificationId(notificationId);
+    setTimeout(() => setCopiedNotificationId(null), 2000);
+  };
 
   useEffect(() => {
     fetchStaff();
@@ -234,53 +293,167 @@ export default function StaffManagement() {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recoveryRequests.map(req => (
-              <div key={req.notificationId} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '8px',
-                padding: '14px 18px',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{req.staffName}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{req.staffEmail} · {req.role} · {req.branchName}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                    Requested: {new Date(req.requestedAt).toLocaleString()}
+            {recoveryRequests.map(req => {
+              const isApproved = req.tempPin !== null && req.tempPin !== undefined;
+              return (
+                <div key={req.notificationId} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '8px',
+                  padding: '18px',
+                  gap: '14px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {req.staffName}
+                        {isApproved && (
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: req.emailStatus === 'SENT' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: req.emailStatus === 'SENT' ? 'var(--color-success)' : 'var(--color-error)',
+                            border: req.emailStatus === 'SENT' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                          }}>
+                            {req.emailStatus === 'SENT' ? 'Email Sent' : 'Email Failed'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{req.staffEmail} · {req.role} · {req.branchName}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                        Requested: {new Date(req.requestedAt).toLocaleString()}
+                      </div>
+                    </div>
+
+                    {!isApproved ? (
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => handleRecoveryAction(req.notificationId, 'APPROVE')}
+                          disabled={recoveryActionLoading === req.notificationId}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                            background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px',
+                            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                            opacity: recoveryActionLoading === req.notificationId ? 0.6 : 1
+                          }}
+                        >
+                          {recoveryActionLoading === req.notificationId ? <Loader2 size={14} className="spin" /> : <Check size={14} />} Approve & Send PIN
+                        </button>
+                        <button
+                          onClick={() => handleRecoveryAction(req.notificationId, 'REJECT')}
+                          disabled={recoveryActionLoading === req.notificationId}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                            background: 'transparent', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                            opacity: recoveryActionLoading === req.notificationId ? 0.6 : 1
+                          }}
+                        >
+                          <X size={14} /> Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        {req.emailStatus === 'FAILED' && (
+                          <button
+                            onClick={() => handleRetryEmail(req.logId)}
+                            disabled={retryingLogId === req.logId}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                              background: 'var(--color-primary)', color: 'var(--color-bg)', border: 'none', borderRadius: '6px',
+                              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                              opacity: retryingLogId === req.logId ? 0.6 : 1
+                            }}
+                          >
+                            {retryingLogId === req.logId ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />} Retry Email
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDismissRequest(req.logId)}
+                          disabled={dismissingLogId === req.logId}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                            background: 'rgba(255,255,255,0.05)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '6px',
+                            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                            opacity: dismissingLogId === req.logId ? 0.6 : 1
+                          }}
+                        >
+                          {dismissingLogId === req.logId ? <Loader2 size={14} className="spin" /> : 'Dismiss'}
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {isApproved && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px dashed var(--color-border)',
+                      borderRadius: '6px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Key size={16} color="var(--color-primary)" />
+                          <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>Generated Temporary Access PIN:</span>
+                          <strong style={{ fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', color: 'var(--color-primary)' }}>
+                            {req.tempPin}
+                          </strong>
+                        </div>
+                        <button
+                          onClick={() => handleCopyPin(req.notificationId, req.tempPin)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px',
+                            background: copiedNotificationId === req.notificationId ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)',
+                            color: copiedNotificationId === req.notificationId ? '#10b981' : 'var(--color-text)',
+                            border: '1px solid var(--color-border)', borderRadius: '4px',
+                            cursor: 'pointer', fontSize: '12px'
+                          }}
+                        >
+                          {copiedNotificationId === req.notificationId ? (
+                            <>Copied!</>
+                          ) : (
+                            <><Copy size={12} /> Copy PIN</>
+                          )}
+                        </button>
+                      </div>
+
+                      {req.emailStatus === 'FAILED' && (
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'flex-start',
+                          background: 'rgba(239, 68, 68, 0.05)',
+                          border: '1px solid rgba(239, 68, 68, 0.15)',
+                          borderRadius: '4px',
+                          padding: '10px 12px',
+                          color: '#f87171',
+                          fontSize: '12px',
+                          marginTop: '4px'
+                        }}>
+                          <AlertCircle size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <strong>Email Delivery Failed:</strong> {req.errorMessage || 'Resend Sandbox Restrictions (Must verify domain to send emails to external addresses).'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={() => handleRecoveryAction(req.notificationId, 'APPROVE')}
-                    disabled={recoveryActionLoading === req.notificationId}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-                      background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px',
-                      cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                      opacity: recoveryActionLoading === req.notificationId ? 0.6 : 1
-                    }}
-                  >
-                    <Check size={14} /> Approve & Send PIN
-                  </button>
-                  <button
-                    onClick={() => handleRecoveryAction(req.notificationId, 'REJECT')}
-                    disabled={recoveryActionLoading === req.notificationId}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-                      background: 'transparent', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
-                      borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                      opacity: recoveryActionLoading === req.notificationId ? 0.6 : 1
-                    }}
-                  >
-                    <X size={14} /> Reject
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -318,3 +318,17 @@ model EmailLog {
 
   @@map("email_logs")
 }
+
+model StaffRecoveryLog {
+  id           String    @id @default(uuid())
+  staffId      String    @map("staff_id")
+  staffEmail   String    @map("staff_email")
+  tempPin      String    @map("temp_pin")
+  emailStatus  String    @map("email_status")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("staff_recovery_logs")
+}
+
